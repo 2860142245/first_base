@@ -1,0 +1,88 @@
+import re
+import os
+
+
+def jiami(seq, pianyi=3):
+    seq_tmp = list(seq)
+    for i in range(len(seq_tmp)):
+        seq_tmp[i] = chr(ord(seq_tmp[i]) + pianyi)
+    return ''.join(seq_tmp)
+
+
+def jiemi(seq, pianyi=3):
+    yuan_seq = jiami(seq, -(pianyi))
+    return yuan_seq
+
+
+while True:
+    x = input('1.进入控制台加密\n2.进入加密程序\n3.进入解密程序\n4.退出\n请输入：')
+
+    if x == '1':
+        a = input('请输入你想加密的数据：')
+
+        a = jiami(a)
+        print('加密后：')
+        print(a)
+
+        a = jiemi(a)
+        print('解密后：')
+        print(a)
+    elif x == '2':
+        filename = input('请输入你想加密的文件：')
+        # 检索是否已加密：
+        with open('secret_base.txt', 'r+') as s:
+            pattern = filename + ':' + '\d+' + '\n'
+            cunzai = 0
+            for i in s.readlines():
+                cunzai = re.match(pattern, i)
+                if cunzai:
+                    print('该文件已加密')
+                    break
+            if not cunzai:
+                pianyi = int(input('请输入你的偏移量：'))
+                # 加密：
+                with open(filename, 'r+', encoding='utf-8') as f:
+                    f_content = f.read()
+                    f.seek(0)
+                    f.write(jiami(f_content, pianyi))
+                # 存入密码库：
+                s.write(filename + ':' + str(pianyi) + '\n')
+
+
+    elif x == '3':
+        filename = input('请输入你想解密的文件：')
+        # 检索密码库：
+        with open('secret_base.txt', 'r+') as s:
+            pattern = filename + ':' + '(\d+)' + '\n'
+            cunzai = 0
+            for i in s.readlines():
+                cunzai = re.match(pattern, i)
+                if cunzai:
+                    # 解密：
+                    secret = int(cunzai.group(1))
+                    with open(filename, 'r+', encoding='utf-8') as f:
+                        f_content = f.read()
+                        f.seek(0)
+                        f.write(jiemi(f_content, secret))
+                    # 清除密码记录：
+                    with open('secret_base_tmp.txt', 'w+') as s_tmp:
+                        s.seek(0)
+                        for i in s.readlines():
+                            if i != cunzai.group():
+                                s_tmp.write(i)
+                        s.seek(0)
+                        s.truncate()
+                        s_tmp.seek(0)
+                        for i in s_tmp.readlines():
+                            s.write(i)
+                    # 清除临时文件：
+                    os.unlink('secret_base_tmp.txt')
+                    break
+            if not cunzai:
+                print('该文件未加密')
+    else:
+        break
+
+    end = input('是否退出：1.是  2.否\n')
+    if end != '2':
+        break
